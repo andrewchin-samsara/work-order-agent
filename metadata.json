@@ -1,0 +1,5 @@
+{
+  "name": "Samsara Warranty Agent",
+  "description": "AI-powered warranty claim agent that analyzes work orders, detects coverage, and auto-drafts claims.",
+  "requestFramePermissions": []
+}
