@@ -12,6 +12,7 @@ interface WarrantyAgentPanelProps {
   isDraftMode?: boolean;
   currentClaim?: ClaimData | null;
   onUpdateClaim?: (updatedClaim: ClaimData) => void;
+  initialDraft?: WarrantyDraft | null;
 }
 
 export const WarrantyAgentPanel: React.FC<WarrantyAgentPanelProps> = ({ 
@@ -21,7 +22,8 @@ export const WarrantyAgentPanel: React.FC<WarrantyAgentPanelProps> = ({
   onCreateDraft,
   isDraftMode = false,
   currentClaim,
-  onUpdateClaim
+  onUpdateClaim,
+  initialDraft
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { 
@@ -37,7 +39,22 @@ export const WarrantyAgentPanel: React.FC<WarrantyAgentPanelProps> = ({
   // Reset chat when switching modes, or keep history? 
   // For this demo, let's reset if we enter draft mode to give context.
   useEffect(() => {
-    if (isDraftMode) {
+    if (isDraftMode && initialDraft) {
+         setMessages([
+            {
+                id: Date.now().toString(),
+                role: 'agent',
+                content: "I've analyzed the work order and generated this draft claim. I found coverable items based on the VMRS codes.",
+                type: 'draft_preview',
+                data: initialDraft
+            },
+            {
+                id: (Date.now() + 1).toString(),
+                role: 'agent',
+                content: "You can review the claim on the left. Let me know if you want to make any changes!"
+            }
+        ]);
+    } else if (isDraftMode) {
         setMessages(prev => [
             ...prev,
             {
@@ -47,7 +64,7 @@ export const WarrantyAgentPanel: React.FC<WarrantyAgentPanelProps> = ({
             }
         ]);
     }
-  }, [isDraftMode]);
+  }, [isDraftMode, initialDraft]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -178,19 +195,22 @@ export const WarrantyAgentPanel: React.FC<WarrantyAgentPanelProps> = ({
           </div>
       )}
 
-      <button 
-        onClick={() => onCreateDraft(draft)}
-        className="w-full mt-2 bg-samsara-blue hover:bg-blue-700 text-white py-2 rounded-md text-sm font-medium transition-colors"
-      >
-          View Claim Draft
-      </button>
+      {!isDraftMode && (
+        <button 
+            onClick={() => onCreateDraft(draft)}
+            className="w-full mt-2 bg-samsara-blue hover:bg-blue-700 text-white py-2 rounded-md text-sm font-medium transition-colors"
+        >
+            View Claim Draft
+        </button>
+      )}
     </div>
   );
 
   return (
     <div 
-      className={`fixed top-0 right-0 h-full bg-white shadow-2xl transform transition-transform duration-300 ease-in-out w-96 z-50 flex flex-col border-l border-gray-200 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      className={`h-full bg-white border-l border-gray-200 transition-all duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'w-96 shadow-xl' : 'w-0'}`}
     >
+      <div className="w-96 min-w-[24rem] flex flex-col h-full">
       {/* Header */}
       <div className="px-4 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
         <div className="flex items-center gap-2">
@@ -280,6 +300,7 @@ export const WarrantyAgentPanel: React.FC<WarrantyAgentPanelProps> = ({
             <Send size={14} />
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -5,9 +5,10 @@ import { WorkOrder, ServiceTask } from '../types';
 interface WorkOrderViewProps {
   workOrder: WorkOrder;
   onOpenAgent: () => void;
+  onDraftWarranty?: () => void;
 }
 
-export const WorkOrderView: React.FC<WorkOrderViewProps> = ({ workOrder, onOpenAgent }) => {
+export const WorkOrderView: React.FC<WorkOrderViewProps> = ({ workOrder, onOpenAgent, onDraftWarranty }) => {
   return (
     <div className="flex-1 bg-samsara-bg overflow-y-auto">
       {/* Top Header */}
@@ -55,7 +56,7 @@ export const WorkOrderView: React.FC<WorkOrderViewProps> = ({ workOrder, onOpenA
             </div>
           </div>
           <button 
-            onClick={onOpenAgent}
+            onClick={onDraftWarranty || onOpenAgent}
             className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-4 py-2 rounded text-sm font-semibold shadow-sm transition-colors flex items-center gap-2"
           >
             <SparklesIcon />

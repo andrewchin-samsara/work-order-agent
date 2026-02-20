@@ -5,7 +5,8 @@ import { WarrantyAgentPanel } from './components/WarrantyAgentPanel';
 import { ClaimDraftView } from './components/ClaimDraftView';
 import { MOCK_WORK_ORDER } from './constants';
 import { WarrantyDraft, ClaimData, ClaimPart, ClaimLabor } from './types';
-import { Search, Bell, Grid, HelpCircle, ChevronDown } from 'lucide-react';
+import { Search, Bell, Grid, Loader2 } from 'lucide-react';
+import { generateWarrantyDraft } from './services/geminiService';
 
 type ViewState = 'workOrder' | 'claimDraft';
 
@@ -13,8 +14,10 @@ export default function App() {
   const [isAgentOpen, setIsAgentOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewState>('workOrder');
   const [claimDraftData, setClaimDraftData] = useState<ClaimData | null>(null);
+  const [initialDraft, setInitialDraft] = useState<WarrantyDraft | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleCreateDraft = (draft: WarrantyDraft) => {
+  const createClaimFromDraft = (draft: WarrantyDraft) => {
     // Transform WorkOrder + WarrantyDraft -> ClaimData
     const allParts: ClaimPart[] = [];
     const allLabor: ClaimLabor[] = [];
@@ -34,7 +37,7 @@ export default function App() {
         });
     });
 
-    const newClaimData: ClaimData = {
+    return {
         workOrderId: MOCK_WORK_ORDER.id,
         vehicleName: MOCK_WORK_ORDER.vehicleName,
         vehicleId: MOCK_WORK_ORDER.vehicleId,
@@ -49,13 +52,38 @@ export default function App() {
         labor: allLabor,
         totalAmount: draft.totalClaimable
     };
+  };
 
+  const handleCreateDraft = (draft: WarrantyDraft) => {
+    const newClaimData = createClaimFromDraft(draft);
     setClaimDraftData(newClaimData);
     setCurrentView('claimDraft');
   };
 
+  const handleDraftWarrantyWithAI = async () => {
+      setIsLoading(true);
+      try {
+          // Generate the draft
+          const draft = await generateWarrantyDraft(MOCK_WORK_ORDER);
+          
+          // Create claim data
+          const newClaimData = createClaimFromDraft(draft);
+          
+          setClaimDraftData(newClaimData);
+          setInitialDraft(draft);
+          setCurrentView('claimDraft');
+          setIsAgentOpen(true);
+      } catch (error) {
+          console.error("Failed to generate draft", error);
+          // Optional: Show error toast
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
   const handleBackToWorkOrder = () => {
       setCurrentView('workOrder');
+      setInitialDraft(null);
   };
 
   const handleUpdateClaim = (updatedClaim: ClaimData) => {
@@ -66,7 +94,7 @@ export default function App() {
     <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Global Top Nav */}
         <div className="bg-white h-14 border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0 z-10">
            <div className="flex items-center bg-gray-100 rounded px-3 py-1.5 w-64">
@@ -88,10 +116,20 @@ export default function App() {
         </div>
 
         <div className="flex-1 flex overflow-hidden relative">
+            {isLoading && (
+                <div className="absolute inset-0 bg-white/80 z-50 flex items-center justify-center backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+                        <p className="text-sm font-medium text-gray-600">Generating warranty draft...</p>
+                    </div>
+                </div>
+            )}
+
             {currentView === 'workOrder' ? (
                 <WorkOrderView 
                     workOrder={MOCK_WORK_ORDER} 
                     onOpenAgent={() => setIsAgentOpen(true)}
+                    onDraftWarranty={handleDraftWarrantyWithAI}
                 />
             ) : (
                 claimDraftData && (
@@ -111,6 +149,7 @@ export default function App() {
                 isDraftMode={currentView === 'claimDraft'}
                 currentClaim={claimDraftData}
                 onUpdateClaim={handleUpdateClaim}
+                initialDraft={initialDraft}
             />
         </div>
       </div>
